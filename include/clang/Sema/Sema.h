@@ -4966,9 +4966,7 @@ public:
   Stmt *MaybeCreateStmtWithCleanups(Stmt *SubStmt);
   ExprResult MaybeCreateExprWithCleanups(ExprResult SubExpr);
 
-  MaterializeTemporaryExpr *
-  CreateMaterializeTemporaryExpr(QualType T, Expr *Temporary,
-                                 bool BoundToLvalueReference);
+  Expr *MaterializeTemporary(Expr *Temporary, bool UsedAsLValue = false);
 
   ExprResult ActOnFinishFullExpr(Expr *Expr) {
     return ActOnFinishFullExpr(Expr, Expr ? Expr->getExprLoc()

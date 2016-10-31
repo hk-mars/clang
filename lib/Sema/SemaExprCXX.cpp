@@ -3578,6 +3578,7 @@ Sema::PerformImplicitConversion(Expr *From, QualType ToType,
 
   case ICK_Array_To_Pointer:
     FromType = Context.getArrayDecayedType(FromType);
+    if (From->isRValue()) From = MaterializeTemporary(From);
     From = ImpCastExprToType(From, FromType, CK_ArrayToPointerDecay,
                              VK_RValue, /*BasePath=*/nullptr, CCK).get();
     break;

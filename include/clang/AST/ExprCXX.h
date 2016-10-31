@@ -4002,10 +4002,8 @@ private:
                             unsigned ManglingNumber);
 
 public:
-  MaterializeTemporaryExpr(QualType T, Expr *Temporary,
-                           bool BoundToLvalueReference)
-    : Expr(MaterializeTemporaryExprClass, T,
-           BoundToLvalueReference? VK_LValue : VK_XValue, OK_Ordinary,
+  MaterializeTemporaryExpr(QualType T, Expr *Temporary, ExprValueKind VK)
+    : Expr(MaterializeTemporaryExprClass, T, VK, OK_Ordinary,
            Temporary->isTypeDependent(), Temporary->isValueDependent(),
            Temporary->isInstantiationDependent(),
            Temporary->containsUnexpandedParameterPack()),

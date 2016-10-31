@@ -1764,6 +1764,9 @@ Sema::BuildFieldReferenceExpr(Expr *BaseExpr, bool IsArrow,
   ExprValueKind VK = VK_LValue;
   ExprObjectKind OK = OK_Ordinary;
   if (!IsArrow) {
+    if (BaseExpr->isRValue())
+      BaseExpr = MaterializeTemporary(BaseExpr);
+
     if (BaseExpr->getObjectKind() == OK_Ordinary)
       VK = BaseExpr->getValueKind();
     else

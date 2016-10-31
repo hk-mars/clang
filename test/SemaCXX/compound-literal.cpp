@@ -77,9 +77,7 @@ namespace brace_initializers {
   }
 }
 
-// This doesn't necessarily need to be an error, but CodeGen can't handle it
-// at the moment.
-int PR17415 = (int){PR17415}; // expected-error {{initializer element is not a compile-time constant}}
+int PR17415 = (int){PR17415}; // expected-warning {{variable 'PR17415' is uninitialized when used within its own initialization}}
 
 // Make sure we accept this.  (Not sure if we actually should... but we do
 // at the moment.)

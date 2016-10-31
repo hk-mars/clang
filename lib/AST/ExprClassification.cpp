@@ -389,7 +389,7 @@ static Cl::Kinds ClassifyInternal(ASTContext &Ctx, const Expr *E) {
   case Expr::MaterializeTemporaryExprClass:
     return cast<MaterializeTemporaryExpr>(E)->isBoundToLvalueReference()
               ? Cl::CL_LValue 
-              : Cl::CL_XValue;
+              : Ctx.getLangOpts().CPlusPlus11 ? Cl::CL_XValue : Cl::CL_PRValue;
 
   case Expr::InitListExprClass:
     // An init list can be an lvalue if it is bound to a reference and

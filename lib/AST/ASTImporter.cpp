@@ -6288,7 +6288,7 @@ ASTNodeImporter::VisitMaterializeTemporaryExpr(MaterializeTemporaryExpr *E) {
     return nullptr;
 
   auto *ToMTE =  new (Importer.getToContext()) MaterializeTemporaryExpr(
-        T, TempE, E->isBoundToLvalueReference());
+        T, TempE, E->getValueKind());
 
   // FIXME: Should ManglingNumber get numbers associated with 'to' context?
   ToMTE->setExtendingDecl(ExtendedBy, E->getManglingNumber());

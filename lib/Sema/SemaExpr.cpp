@@ -542,9 +542,11 @@ ExprResult Sema::DefaultFunctionArrayConversion(Expr *E, bool Diagnose) {
     // An lvalue or rvalue of type "array of N T" or "array of unknown bound of
     // T" can be converted to an rvalue of type "pointer to T".
     //
-    if (getLangOpts().C99 || getLangOpts().CPlusPlus || E->isLValue())
+    if (getLangOpts().C99 || getLangOpts().CPlusPlus || E->isLValue()) {
+      if (E->isRValue()) E = MaterializeTemporary(E);
       E = ImpCastExprToType(E, Context.getArrayDecayedType(Ty),
                             CK_ArrayToPointerDecay).get();
+    }
   }
   return E;
 }
@@ -4449,8 +4451,10 @@ Sema::CreateBuiltinArraySubscriptExpr(Expr *Base, SourceLocation LLoc,
     // wasn't promoted because of the C90 rule that doesn't
     // allow promoting non-lvalue arrays.  Warn, then
     // force the promotion here.
+    assert(!getLangOpts().CPlusPlus);
     Diag(LHSExp->getLocStart(), diag::ext_subscript_non_lvalue) <<
         LHSExp->getSourceRange();
+    LHSExp = MaterializeTemporary(LHSExp);
     LHSExp = ImpCastExprToType(LHSExp, Context.getArrayDecayedType(LHSTy),
                                CK_ArrayToPointerDecay).get();
     LHSTy = LHSExp->getType();
@@ -4460,8 +4464,10 @@ Sema::CreateBuiltinArraySubscriptExpr(Expr *Base, SourceLocation LLoc,
     ResultType = LHSTy->getAs<PointerType>()->getPointeeType();
   } else if (RHSTy->isArrayType()) {
     // Same as previous, except for 123[f().a] case
+    assert(!getLangOpts().CPlusPlus);
     Diag(RHSExp->getLocStart(), diag::ext_subscript_non_lvalue) <<
         RHSExp->getSourceRange();
+    RHSExp = MaterializeTemporary(RHSExp);
     RHSExp = ImpCastExprToType(RHSExp, Context.getArrayDecayedType(RHSTy),
                                CK_ArrayToPointerDecay).get();
     RHSTy = RHSExp->getType();
@@ -5572,17 +5578,20 @@ Sema::BuildCompoundLiteralExpr(SourceLocation LParenLoc, TypeSourceInfo *TInfo,
     return ExprError();
   LiteralExpr = Result.get();
 
-  bool isFileScope = getCurFunctionOrMethodDecl() == nullptr;
-  if (isFileScope &&
-      !LiteralExpr->isTypeDependent() &&
-      !LiteralExpr->isValueDependent() &&
-      !literalType->isDependentType()) { // 6.5.2.5p3
+  // In C, compound literals are l-values identifying an object.
+  // That object is mutable if the literal type is non-const, and it
+  // has static storage duration if the literal occurs "outside the
+  // body of a function", which for our purposes just means the
+  // initializer of a global variable or static data member.
+  // Because this is specific to C, we can just check CurContext instead
+  // of worrying about in-class initializers or default arguments.
+  ExprValueKind VK = getLangOpts().CPlusPlus ? VK_RValue : VK_LValue;
+  bool isFileScope =
+    (!getLangOpts().CPlusPlus && !CurContext->isFunctionOrMethod());
+  if (isFileScope) { // 6.5.2.5p3
     if (CheckForConstantInitializer(LiteralExpr, literalType))
       return ExprError();
   }
-
-  // In C, compound literals are l-values for some reason.
-  ExprValueKind VK = getLangOpts().CPlusPlus ? VK_RValue : VK_LValue;
 
   return MaybeBindToTemporary(
            new (Context) CompoundLiteralExpr(LParenLoc, TInfo, literalType,
@@ -10573,8 +10582,7 @@ QualType Sema::CheckAddressOfOperand(ExprResult &OrigOp, SourceLocation OpLoc) {
     if (sfinae)
       return QualType();
     // Materialize the temporary as an lvalue so that we can take its address.
-    OrigOp = op =
-        CreateMaterializeTemporaryExpr(op->getType(), OrigOp.get(), true);
+    OrigOp = op = MaterializeTemporary(OrigOp.get(), /*as lvalue*/ true);
   } else if (isa<ObjCSelectorExpr>(op)) {
     return Context.getPointerType(op->getType());
   } else if (lval == Expr::LV_MemberFunction) {

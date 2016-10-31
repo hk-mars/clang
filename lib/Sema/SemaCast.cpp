@@ -644,8 +644,7 @@ void CastOperation::CheckDynamicCast() {
     // If we're dynamic_casting from a prvalue to an rvalue reference, we need
     // to materialize the prvalue before we bind the reference to it.
     if (SrcExpr.get()->isRValue())
-      SrcExpr = Self.CreateMaterializeTemporaryExpr(
-          SrcType, SrcExpr.get(), /*IsLValueReference*/ false);
+      SrcExpr = Self.MaterializeTemporary(SrcExpr.get());
     SrcPointee = SrcType;
   }
 
@@ -1649,8 +1648,7 @@ static TryCastResult TryConstCast(Sema &Self, ExprResult &SrcExpr,
   if (NeedToMaterializeTemporary)
     // This is a const_cast from a class prvalue to an rvalue reference type.
     // Materialize a temporary to store the result of the conversion.
-    SrcExpr = Self.CreateMaterializeTemporaryExpr(SrcType, SrcExpr.get(),
-                                                  /*IsLValueReference*/ false);
+    SrcExpr = Self.MaterializeTemporary(SrcExpr.get());
 
   return TC_Success;
 }
